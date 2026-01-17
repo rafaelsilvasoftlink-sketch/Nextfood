@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEXEATS | Global Operations Command Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+
+<style>
+html,body{
+    margin:0;
+    background:#0b0e14;
+    color:#ffffff;
+    font-family:Inter,sans-serif;
+}
+.container{padding:20px}
+
+/* LOGO */
+.logo{
+    font-family:Orbitron;
+    text-align:center;
+    font-size:32px;
+    color:#ffae00;
+    transition:0.3s;
+}
+.logo.heat{
+    color:#ff2a2a;
+    text-shadow:
+        0 0 8px #ff2a2a,
+        0 0 16px #ff0000,
+        0 0 28px #ff0000;
+}
+.subtitle{
+    text-align:center;
+    opacity:.85;
+    margin-bottom:25px;
+}
+
+/* KPIs */
+.kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:15px;
+}
+.kpi{
+    background:rgba(255,255,255,0.08);
+    border:1px solid #ff6a00;
+    border-radius:14px;
+    padding:16px;
+    text-align:center;
+}
+.kpi span{
+    display:block;
+    margin-top:8px;
+    font-size:26px;
+    font-weight:700;
+}
+
+/* Filters */
+.filters{
+    margin:25px 0;
+    text-align:center;
+}
+.filters p{opacity:.8}
+.filter-btn{
+    margin:6px;
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    background:#ff6a00;
+    color:#000;
+    font-family:Orbitron;
+    cursor:pointer;
+}
+.filter-btn.selected{background:#ffd000}
+
+/* Dashboard */
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+    gap:20px;
+}
+.card{
+    background:rgba(255,255,255,0.06);
+    border:1px solid #ff6a00;
+    border-radius:16px;
+    padding:16px;
+}
+.card h3{
+    font-family:Orbitron;
+    font-size:14px;
+    margin-bottom:10px;
+    color:#ffae00;
+}
+canvas{height:260px!important}
+
+footer{
+    margin-top:30px;
+    text-align:center;
+    font-size:12px;
+    opacity:.6;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<div id="logo" class="logo">NEXEATS</div>
+<div class="subtitle">Global Food Delivery – Operational Command Center</div>
+
+<!-- KPIs -->
+<div class="kpis">
+    <div class="kpi">Active Orders<span id="k1">0</span></div>
+    <div class="kpi">Total Revenue<span id="k2">$0.00</span></div>
+    <div class="kpi">Total Cost<span id="k3">$0.00</span></div>
+    <div class="kpi">Avg Delivery Time<span id="k4">0 min</span></div>
+    <div class="kpi">On-Time Delivery<span id="k5">0%</span></div>
+    <div class="kpi">Active Incidents<span id="k6">0</span></div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+    <p>Hold CTRL to select multiple regions</p>
+    <button class="filter-btn" data-r="North America">North America</button>
+    <button class="filter-btn" data-r="Europe">Europe</button>
+    <button class="filter-btn" data-r="Asia-Pacific">Asia-Pacific</button>
+</div>
+
+<!-- Charts -->
+<div class="dashboard">
+    <div class="card"><h3>Orders by Region</h3><canvas id="c1"></canvas></div>
+    <div class="card"><h3>Revenue</h3><canvas id="c2"></canvas></div>
+    <div class="card"><h3>Cost vs Profit</h3><canvas id="c3"></canvas></div>
+    <div class="card"><h3>Delivery SLA</h3><canvas id="c4"></canvas></div>
+    <div class="card"><h3>Incident Types</h3><canvas id="c5"></canvas></div>
+</div>
+
+<footer>
+All data is fictional • Enterprise Operations Simulation
+</footer>
+
+</div>
+
+<script>
+Chart.defaults.color="#ffffff";
+
+const regions=["North America","Europe","Asia-Pacific"];
+const incidentTypes = ["App","Payments","Courier","Restaurant","Support"];
+const data=[];
+
+// Generate random data
+for(let i=0;i<12000;i++){
+    const revenue=Math.random()*35+10;
+    const cost=Math.random()*22+5;
+    const incident = Math.random() > 0.85;
+    let incidentType = null;
+    if(incident){
+        incidentType = incidentTypes[Math.floor(Math.random()*incidentTypes.length)];
+    }
+    data.push({
+        region:regions[Math.floor(Math.random()*3)],
+        revenue,
+        cost,
+        profit: revenue-cost,
+        deliveryTime: Math.random()*25+20,
+        onTime: Math.random()>0.18,
+        incident,
+        incidentType
+    });
+}
+
+let selected=[];
+const fdata=()=>selected.length?data.filter(d=>selected.includes(d.region)):data;
+const money=v=>"$"+v.toLocaleString("en-US",{minimumFractionDigits:2});
+
+// Orders by Region
+const c1=new Chart(document.getElementById("c1"),{
+    type:"bar",
+    data:{labels:regions,datasets:[{data:[],backgroundColor:["#ff3d00","#ff9100","#ffd000"]}]},
+    options:{indexAxis:"y"}
+});
+
+// Revenue
+const c2=new Chart(document.getElementById("c2"),{
+    type:"line",
+    data:{labels:regions,datasets:[{data:[],fill:true,backgroundColor:"rgba(255,145,0,.35)",borderColor:"#ff9100"}]}
+});
+
+// Cost vs Profit
+const c3=new Chart(document.getElementById("c3"),{
+    type:"bar",
+    data:{labels:regions,datasets:[
+        {label:"Cost",data:[],backgroundColor:"#ffffff"},
+        {label:"Profit",data:[],backgroundColor:"#ff3d00"}
+    ]}
+});
+
+// Delivery SLA
+const c4=new Chart(document.getElementById("c4"),{
+    type:"doughnut",
+    data:{labels:["On Time","Delayed"],datasets:[{data:[],backgroundColor:["#ffd000","#ff3d00"]}]}
+});
+
+// Incident Types (dynamic, numbers removed)
+const c5 = new Chart(document.getElementById("c5"),{
+    type: "polarArea",
+    data: {
+        labels: incidentTypes,
+        datasets: [{
+            data: [],
+            backgroundColor:["#ff3d00","#ff9100","#ffd000","#ff6a00","#ff1744"]
+        }]
+    },
+    options: {
+        plugins: {
+            legend: {
+                labels: { color: "#ffffff" } // keep legend visible
+            }
+        },
+        scales: {
+            r: {
+                ticks: { display: false }, // remove numbers around the chart
+                grid: { color: "rgba(255,255,255,0.1)" },
+                angleLines: { color: "rgba(255,255,255,0.1)" }
+            }
+        }
+    }
+});
+
+function update(){
+    const f = fdata();
+    const total = f.length;
+    const revenue = f.reduce((a,b)=>a+b.revenue,0);
+    const cost = f.reduce((a,b)=>a+b.cost,0);
+    const onTime = Math.round((f.filter(d=>d.onTime).length/total)*100);
+    const incidents = f.filter(d=>d.incident).length;
+
+    // Update KPIs
+    k1.textContent=total.toLocaleString();
+    k2.textContent=money(revenue);
+    k3.textContent=money(cost);
+    k4.textContent=(f.reduce((a,b)=>a+b.deliveryTime,0)/total).toFixed(1)+" min";
+    k5.textContent=onTime+"%";
+    k6.textContent=incidents;
+
+    // Update Charts
+    c1.data.datasets[0].data = regions.map(r=>f.filter(d=>d.region===r).length);
+    c2.data.datasets[0].data = regions.map(r=>f.filter(d=>d.region===r).reduce((a,b)=>a+b.revenue,0));
+    c3.data.datasets[0].data = regions.map(r=>f.filter(d=>d.region===r).reduce((a,b)=>a+b.cost,0));
+    c3.data.datasets[1].data = regions.map(r=>f.filter(d=>d.region===r).reduce((a,b)=>a+b.profit,0));
+    c4.data.datasets[0].data = [onTime,100-onTime];
+
+    // Incident Types counts
+    const typeCounts = incidentTypes.map(type => f.filter(d=>d.incident && d.incidentType===type).length);
+    c5.data.datasets[0].data = typeCounts;
+
+    [c1,c2,c3,c4,c5].forEach(c=>c.update());
+}
+
+// Logo heat effect
+function heatLogo(){
+    const logo=document.getElementById("logo");
+    logo.classList.add("heat");
+    setTimeout(()=>logo.classList.remove("heat"),700);
+}
+
+// Filters logic
+document.querySelectorAll(".filter-btn").forEach(b=>{
+    b.onclick=e=>{
+        const r=b.dataset.r;
+        if(e.ctrlKey){
+            selected.includes(r)?selected=selected.filter(x=>x!==r):selected.push(r);
+            b.classList.toggle("selected");
+        }else{
+            selected=[r];
+            document.querySelectorAll(".filter-btn").forEach(x=>x.classList.remove("selected"));
+            b.classList.add("selected");
+        }
+        update();
+        heatLogo();
+    };
+});
+
+update();
+</script>
+</body>
+</html>
